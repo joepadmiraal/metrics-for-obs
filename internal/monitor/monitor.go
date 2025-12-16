@@ -2,6 +2,8 @@ package monitor
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/andreykaipov/goobs"
@@ -18,7 +20,8 @@ type ObsConnectionInfo struct {
 type Monitor struct {
 	client         *goobs.Client
 	connectionInfo ObsConnectionInfo
-	pinger         *metric.Pinger
+	obsPinger      *metric.Pinger
+	googlePinger   *metric.Pinger
 	streamMetrics  *metric.StreamMetrics
 	csvWriter      *writer.CSVWriter
 	consoleWriter  *writer.ConsoleWriter
@@ -49,11 +52,24 @@ func (m *Monitor) Start() error {
 		return fmt.Errorf("failed to connect to OBS: %w", err)
 	}
 
-	// Initialize pinger
-	var err error
-	m.pinger, err = metric.NewPinger(m.client)
+	// Get OBS stream server domain
+	streamSettings, err := m.client.Config.GetStreamServiceSettings()
 	if err != nil {
-		return fmt.Errorf("failed to initialize pinger: %w", err)
+		return fmt.Errorf("failed to get stream settings: %w", err)
+	}
+
+	serverURL := streamSettings.StreamServiceSettings.Server
+	if serverURL == "" {
+		return fmt.Errorf("stream server URL not found in settings")
+	}
+
+	obsDomain, err := extractDomain(serverURL)
+	if err != nil {
+		return fmt.Errorf("failed to extract domain from URL: %w", err)
+	}
+
+	if err := m.initializePingers(obsDomain); err != nil {
+		return err
 	}
 
 	// Initialize stream metrics
@@ -76,13 +92,6 @@ func (m *Monitor) Start() error {
 
 	m.PrintInfo()
 
-	// Start pinger in a goroutine
-	go func() {
-		if err := m.pinger.Start(); err != nil {
-			fmt.Printf("Pinger error: %v\n", err)
-		}
-	}()
-
 	// Start stream metrics monitoring in a goroutine
 	go func() {
 		if err := m.streamMetrics.Start(); err != nil {
@@ -92,6 +101,34 @@ func (m *Monitor) Start() error {
 
 	// Start metrics collector
 	go m.collectAndWriteMetrics()
+
+	return nil
+}
+
+func (m *Monitor) initializePingers(obsDomain string) error {
+	var err error
+
+	m.obsPinger, err = metric.NewPinger(obsDomain)
+	if err != nil {
+		return fmt.Errorf("failed to initialize OBS pinger: %w", err)
+	}
+
+	m.googlePinger, err = metric.NewPinger("google.com")
+	if err != nil {
+		return fmt.Errorf("failed to initialize Google pinger: %w", err)
+	}
+
+	go func() {
+		if err := m.obsPinger.Start(); err != nil {
+			fmt.Printf("OBS pinger error: %v\n", err)
+		}
+	}()
+
+	go func() {
+		if err := m.googlePinger.Start(); err != nil {
+			fmt.Printf("Google pinger error: %v\n", err)
+		}
+	}()
 
 	return nil
 }
@@ -117,48 +154,59 @@ func (m *Monitor) Close() {
 	m.client.Disconnect()
 }
 
-// collectAndWriteMetrics collects metrics from both pinger and stream metrics and writes to CSV
+// collectAndWriteMetrics collects metrics from both pingers and stream metrics and writes to CSV
 func (m *Monitor) collectAndWriteMetrics() {
-	var lastPingMetrics metric.PingMetrics
+	var lastObsPingMetrics metric.PingMetrics
+	var lastGooglePingMetrics metric.PingMetrics
 	var lastStreamMetrics metric.StreamMetricsData
-	var havePing, haveStream bool
+	var haveObsPing, haveGooglePing, haveStream bool
 
-	pingChan := m.pinger.GetMetricsChan()
+	obsPingChan := m.obsPinger.GetMetricsChan()
+	googlePingChan := m.googlePinger.GetMetricsChan()
 	streamChan := m.streamMetrics.GetMetricsChan()
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case pingMetrics := <-pingChan:
-			lastPingMetrics = pingMetrics
-			havePing = true
+		case obsPingMetrics := <-obsPingChan:
+			lastObsPingMetrics = obsPingMetrics
+			haveObsPing = true
+
+		case googlePingMetrics := <-googlePingChan:
+			lastGooglePingMetrics = googlePingMetrics
+			haveGooglePing = true
 
 		case streamMetrics := <-streamChan:
 			lastStreamMetrics = streamMetrics
 			haveStream = true
 
 		case <-ticker.C:
-			// Write metrics once per second with the latest data from both sources
-			if havePing || haveStream {
-				m.writeMetrics(lastPingMetrics, lastStreamMetrics)
+			// Write metrics once per second with the latest data from all sources
+			if haveObsPing || haveGooglePing || haveStream {
+				m.writeMetrics(lastObsPingMetrics, lastGooglePingMetrics, lastStreamMetrics)
 			}
 		}
 	}
 }
 
 // writeMetrics writes a combined metrics row to CSV and console
-func (m *Monitor) writeMetrics(pingMetrics metric.PingMetrics, streamMetrics metric.StreamMetricsData) {
+func (m *Monitor) writeMetrics(obsPingMetrics metric.PingMetrics, googlePingMetrics metric.PingMetrics, streamMetrics metric.StreamMetricsData) {
 	// Use the more recent timestamp
-	timestamp := pingMetrics.Timestamp
-	if streamMetrics.Timestamp.After(pingMetrics.Timestamp) {
+	timestamp := obsPingMetrics.Timestamp
+	if googlePingMetrics.Timestamp.After(timestamp) {
+		timestamp = googlePingMetrics.Timestamp
+	}
+	if streamMetrics.Timestamp.After(timestamp) {
 		timestamp = streamMetrics.Timestamp
 	}
 
 	data := writer.MetricsData{
 		Timestamp:           timestamp,
-		RTT:                 pingMetrics.RTT,
-		PingError:           pingMetrics.Error,
+		ObsRTT:              obsPingMetrics.RTT,
+		ObsPingError:        obsPingMetrics.Error,
+		GoogleRTT:           googlePingMetrics.RTT,
+		GooglePingError:     googlePingMetrics.Error,
 		StreamActive:        streamMetrics.Active,
 		OutputBytes:         streamMetrics.OutputBytes,
 		OutputSkippedFrames: streamMetrics.OutputSkippedFrames,
@@ -176,4 +224,22 @@ func (m *Monitor) writeMetrics(pingMetrics metric.PingMetrics, streamMetrics met
 	if err := m.consoleWriter.WriteMetrics(data); err != nil {
 		fmt.Printf("Error writing to console: %v\n", err)
 	}
+}
+
+func extractDomain(rawURL string) (string, error) {
+	if !strings.Contains(rawURL, "://") {
+		rawURL = "rtmp://" + rawURL
+	}
+
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+
+	host := parsedURL.Hostname()
+	if host == "" {
+		return "", fmt.Errorf("no hostname found in URL")
+	}
+
+	return host, nil
 }

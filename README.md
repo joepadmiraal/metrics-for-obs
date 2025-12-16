@@ -20,8 +20,8 @@ obs-monitor -password <password> [-host localhost] [-port 4455] [-csv output.csv
 When the `-csv` flag is provided, the monitor will write one line per second to the CSV file containing:
 
 - `timestamp`: ISO 8601 timestamp
-- `rtt_ms`: Round-trip time to the streaming server in milliseconds
-- `ping_error`: Any error that occurred during ping
+- `obs_rtt_ms`: Round-trip time to the streaming server in milliseconds
+- `google_rtt_ms`: Round-trip time to Google in milliseconds
 - `stream_active`: Whether the stream is currently active
 - `output_bytes`: Total bytes sent to the streaming server
 - `output_skipped_frames`: Number of frames skipped

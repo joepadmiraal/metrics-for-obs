@@ -20,8 +20,10 @@ func TestConsoleWriter_WriteMetrics_HighRTT(t *testing.T) {
 	// Test with 1001ms RTT (1001000 microseconds)
 	data := MetricsData{
 		Timestamp:           time.Date(2025, 12, 16, 10, 0, 0, 0, time.UTC),
-		RTT:                 1001 * time.Millisecond,
-		PingError:           nil,
+		ObsRTT:              1001 * time.Millisecond,
+		ObsPingError:        nil,
+		GoogleRTT:           25 * time.Millisecond,
+		GooglePingError:     nil,
 		StreamActive:        true,
 		OutputBytes:         123456.0,
 		OutputSkippedFrames: 10.0,

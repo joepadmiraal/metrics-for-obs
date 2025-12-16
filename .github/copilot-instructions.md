@@ -2,6 +2,7 @@ This is a small utility that monitors an OBS Studio instance via a WebSocket con
 It's used for monitoring low latency streams so we use a measurement interval of 1 second.
 
 `/internal/monitor/monitor.go` contains the orchestration of the monitoring.
+`/internal/metric/` contains several metric collectors.
 `/internal/writer/` contains several writers for outputting the monitoring results. 
 
 ## Code style

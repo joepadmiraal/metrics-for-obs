@@ -21,19 +21,30 @@ func NewConsoleWriter() *ConsoleWriter {
 func (cw *ConsoleWriter) WriteMetrics(data MetricsData) error {
 	// Print header on first call
 	if !cw.headerPrinted {
-		fmt.Println("timestamp                 | rtt_ms   | stream_active | output_bytes | output_skipped_frames | errors")
-		fmt.Println("--------------------------|----------|---------------|--------------|-----------------------|--------")
+		fmt.Println("timestamp                 | obs_rtt_ms | google_rtt_ms | stream_active | output_bytes | output_skipped_frames | errors")
+		fmt.Println("--------------------------|------------|---------------|---------------|--------------|-----------------------|--------")
 		cw.headerPrinted = true
 	}
 
-	rttMs := "      -"
-	if data.PingError == nil && data.RTT > 0 {
-		rttMs = fmt.Sprintf("%7.2f", float64(data.RTT.Microseconds())/1000.0)
+	obsRttMs := "         -"
+	if data.ObsPingError == nil && data.ObsRTT > 0 {
+		obsRttMs = fmt.Sprintf("%10.2f", float64(data.ObsRTT.Microseconds())/1000.0)
+	}
+
+	googleRttMs := "            -"
+	if data.GooglePingError == nil && data.GoogleRTT > 0 {
+		googleRttMs = fmt.Sprintf("%13.2f", float64(data.GoogleRTT.Microseconds())/1000.0)
 	}
 
 	errors := ""
-	if data.PingError != nil {
-		errors = fmt.Sprintf("ping: %v", data.PingError)
+	if data.ObsPingError != nil {
+		errors = fmt.Sprintf("obs_ping: %v", data.ObsPingError)
+	}
+	if data.GooglePingError != nil {
+		if errors != "" {
+			errors += "; "
+		}
+		errors += fmt.Sprintf("google_ping: %v", data.GooglePingError)
 	}
 	if data.StreamError != nil {
 		if errors != "" {
@@ -42,9 +53,10 @@ func (cw *ConsoleWriter) WriteMetrics(data MetricsData) error {
 		errors += fmt.Sprintf("stream: %v", data.StreamError)
 	}
 
-	fmt.Printf("%25s | %8s | %13t | %12.0f | %21.0f | %s\n",
+	fmt.Printf("%25s | %10s | %13s | %13t | %12.0f | %21.0f | %s\n",
 		data.Timestamp.Format(time.RFC3339),
-		rttMs,
+		obsRttMs,
+		googleRttMs,
 		data.StreamActive,
 		data.OutputBytes,
 		data.OutputSkippedFrames,

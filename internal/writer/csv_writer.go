@@ -25,8 +25,10 @@ func NewCSVWriter(filename string) (*CSVWriter, error) {
 	// Write header
 	header := []string{
 		"timestamp",
-		"rtt_ms",
-		"ping_error",
+		"obs_rtt_ms",
+		"obs_ping_error",
+		"google_rtt_ms",
+		"google_ping_error",
 		"stream_active",
 		"output_bytes",
 		"output_skipped_frames",
@@ -46,14 +48,24 @@ func NewCSVWriter(filename string) (*CSVWriter, error) {
 
 // WriteMetrics writes a single metrics data row to the CSV file
 func (cw *CSVWriter) WriteMetrics(data MetricsData) error {
-	rttMs := ""
-	if data.PingError == nil && data.RTT > 0 {
-		rttMs = fmt.Sprintf("%.2f", float64(data.RTT.Microseconds())/1000.0)
+	obsRttMs := ""
+	if data.ObsPingError == nil && data.ObsRTT > 0 {
+		obsRttMs = fmt.Sprintf("%.2f", float64(data.ObsRTT.Microseconds())/1000.0)
 	}
 
-	pingError := ""
-	if data.PingError != nil {
-		pingError = data.PingError.Error()
+	googleRttMs := ""
+	if data.GooglePingError == nil && data.GoogleRTT > 0 {
+		googleRttMs = fmt.Sprintf("%.2f", float64(data.GoogleRTT.Microseconds())/1000.0)
+	}
+
+	obsPingError := ""
+	if data.ObsPingError != nil {
+		obsPingError = data.ObsPingError.Error()
+	}
+
+	googlePingError := ""
+	if data.GooglePingError != nil {
+		googlePingError = data.GooglePingError.Error()
 	}
 
 	streamError := ""
@@ -63,8 +75,10 @@ func (cw *CSVWriter) WriteMetrics(data MetricsData) error {
 
 	row := []string{
 		data.Timestamp.Format(time.RFC3339),
-		rttMs,
-		pingError,
+		obsRttMs,
+		obsPingError,
+		googleRttMs,
+		googlePingError,
 		fmt.Sprintf("%t", data.StreamActive),
 		fmt.Sprintf("%.0f", data.OutputBytes),
 		fmt.Sprintf("%.0f", data.OutputSkippedFrames),
