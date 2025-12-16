@@ -21,8 +21,8 @@ func NewConsoleWriter() *ConsoleWriter {
 func (cw *ConsoleWriter) WriteMetrics(data MetricsData) error {
 	// Print header on first call
 	if !cw.headerPrinted {
-		fmt.Println("timestamp                 | obs_rtt_ms | google_rtt_ms | stream_active | output_bytes | output_skipped_frames | errors")
-		fmt.Println("--------------------------|------------|---------------|---------------|--------------|-----------------------|--------")
+		fmt.Println("timestamp                 | obs_rtt_ms | google_rtt_ms | stream_active | output_bytes | output_skipped_frames | obs_cpu_% | obs_mem_mb | errors")
+		fmt.Println("--------------------------|------------|---------------|---------------|--------------|-----------------------|-----------|------------|--------")
 		cw.headerPrinted = true
 	}
 
@@ -52,14 +52,22 @@ func (cw *ConsoleWriter) WriteMetrics(data MetricsData) error {
 		}
 		errors += fmt.Sprintf("stream: %v", data.StreamError)
 	}
+	if data.ObsStatsError != nil {
+		if errors != "" {
+			errors += "; "
+		}
+		errors += fmt.Sprintf("obs_stats: %v", data.ObsStatsError)
+	}
 
-	fmt.Printf("%25s | %10s | %13s | %13t | %12.0f | %21.0f | %s\n",
+	fmt.Printf("%25s | %10s | %13s | %13t | %12.0f | %21.0f | %9.1f | %10.0f | %s\n",
 		data.Timestamp.Format(time.RFC3339),
 		obsRttMs,
 		googleRttMs,
 		data.StreamActive,
 		data.OutputBytes,
 		data.OutputSkippedFrames,
+		data.ObsCpuUsage,
+		data.ObsMemoryUsage,
 		errors,
 	)
 

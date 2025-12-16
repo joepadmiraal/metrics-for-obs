@@ -25,6 +25,7 @@ type Monitor struct {
 	obsPinger      *metric.Pinger
 	googlePinger   *metric.Pinger
 	streamMetrics  *metric.StreamMetrics
+	obsStats       *metric.ObsStats
 	csvWriter      *writer.CSVWriter
 	consoleWriter  *writer.ConsoleWriter
 	metricInterval time.Duration
@@ -84,6 +85,12 @@ func (m *Monitor) Start() error {
 		return fmt.Errorf("failed to initialize stream metrics: %w", err)
 	}
 
+	// Initialize OBS stats
+	m.obsStats, err = metric.NewObsStats(m.client, m.metricInterval)
+	if err != nil {
+		return fmt.Errorf("failed to initialize OBS stats: %w", err)
+	}
+
 	// Initialize CSV writer if filename is provided
 	if m.connectionInfo.CSVFile != "" {
 		m.csvWriter, err = writer.NewCSVWriter(m.connectionInfo.CSVFile)
@@ -102,6 +109,13 @@ func (m *Monitor) Start() error {
 	go func() {
 		if err := m.streamMetrics.Start(); err != nil {
 			fmt.Printf("Stream metrics error: %v\n", err)
+		}
+	}()
+
+	// Start OBS stats monitoring in a goroutine
+	go func() {
+		if err := m.obsStats.Start(); err != nil {
+			fmt.Printf("OBS stats error: %v\n", err)
 		}
 	}()
 
@@ -160,7 +174,7 @@ func (m *Monitor) Close() {
 	m.client.Disconnect()
 }
 
-// collectAndWriteMetrics collects metrics from both pingers and stream metrics and writes to CSV
+// collectAndWriteMetrics collects metrics from pingers, stream metrics, and system metrics and writes to CSV
 func (m *Monitor) collectAndWriteMetrics() {
 	ticker := time.NewTicker(m.writerInterval)
 	defer ticker.Stop()
@@ -169,13 +183,14 @@ func (m *Monitor) collectAndWriteMetrics() {
 		obsRTT, obsErr := m.obsPinger.GetAndResetMaxRTT()
 		googleRTT, googleErr := m.googlePinger.GetAndResetMaxRTT()
 		streamData := m.streamMetrics.GetAndResetMaxValues()
+		obsStatsData := m.obsStats.GetAndResetMaxValues()
 
-		m.writeMetrics(obsRTT, obsErr, googleRTT, googleErr, streamData)
+		m.writeMetrics(obsRTT, obsErr, googleRTT, googleErr, streamData, obsStatsData)
 	}
 }
 
 // writeMetrics writes a combined metrics row to CSV and console
-func (m *Monitor) writeMetrics(obsRTT time.Duration, obsErr error, googleRTT time.Duration, googleErr error, streamData metric.StreamMetricsData) {
+func (m *Monitor) writeMetrics(obsRTT time.Duration, obsErr error, googleRTT time.Duration, googleErr error, streamData metric.StreamMetricsData, obsStatsData metric.ObsStatsData) {
 	data := writer.MetricsData{
 		Timestamp:           streamData.Timestamp,
 		ObsRTT:              obsRTT,
@@ -186,6 +201,9 @@ func (m *Monitor) writeMetrics(obsRTT time.Duration, obsErr error, googleRTT tim
 		OutputBytes:         streamData.OutputBytes,
 		OutputSkippedFrames: streamData.OutputSkippedFrames,
 		StreamError:         streamData.Error,
+		ObsCpuUsage:         obsStatsData.ObsCpuUsage,
+		ObsMemoryUsage:      obsStatsData.ObsMemoryUsage,
+		ObsStatsError:       obsStatsData.Error,
 	}
 
 	// Write to CSV if enabled

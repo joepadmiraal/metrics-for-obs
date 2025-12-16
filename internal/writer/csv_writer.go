@@ -33,6 +33,9 @@ func NewCSVWriter(filename string) (*CSVWriter, error) {
 		"output_bytes",
 		"output_skipped_frames",
 		"stream_error",
+		"obs_cpu_percent",
+		"obs_memory_mb",
+		"obs_stats_error",
 	}
 	if err := writer.Write(header); err != nil {
 		file.Close()
@@ -73,6 +76,11 @@ func (cw *CSVWriter) WriteMetrics(data MetricsData) error {
 		streamError = data.StreamError.Error()
 	}
 
+	obsStatsError := ""
+	if data.ObsStatsError != nil {
+		obsStatsError = data.ObsStatsError.Error()
+	}
+
 	row := []string{
 		data.Timestamp.Format(time.RFC3339),
 		obsRttMs,
@@ -83,6 +91,9 @@ func (cw *CSVWriter) WriteMetrics(data MetricsData) error {
 		fmt.Sprintf("%.0f", data.OutputBytes),
 		fmt.Sprintf("%.0f", data.OutputSkippedFrames),
 		streamError,
+		fmt.Sprintf("%.2f", data.ObsCpuUsage),
+		fmt.Sprintf("%.2f", data.ObsMemoryUsage),
+		obsStatsError,
 	}
 
 	if err := cw.writer.Write(row); err != nil {
