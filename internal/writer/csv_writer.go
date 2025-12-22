@@ -38,20 +38,16 @@ func NewCSVWriter(filename, obsVersion, streamDomain string) (*CSVWriter, error)
 	header := []string{
 		"timestamp",
 		"obs_rtt_ms",
-		"obs_ping_error",
 		"google_rtt_ms",
-		"google_ping_error",
 		"stream_active",
 		"output_bytes",
 		"output_skipped_frames",
 		"output_frames",
-		"stream_error",
 		"obs_cpu_percent",
 		"obs_memory_mb",
-		"obs_stats_error",
 		"system_cpu_percent",
 		"system_memory_percent",
-		"system_metrics_error",
+		"errors",
 	}
 	if err := writer.Write(header); err != nil {
 		file.Close()
@@ -77,48 +73,48 @@ func (cw *CSVWriter) WriteMetrics(data MetricsData) error {
 		googleRttMs = fmt.Sprintf("%.2f", float64(data.GoogleRTT.Microseconds())/1000.0)
 	}
 
-	obsPingError := ""
+	errors := ""
 	if data.ObsPingError != nil {
-		obsPingError = data.ObsPingError.Error()
+		errors = fmt.Sprintf("obs_ping: %v", data.ObsPingError)
 	}
-
-	googlePingError := ""
 	if data.GooglePingError != nil {
-		googlePingError = data.GooglePingError.Error()
+		if errors != "" {
+			errors += "; "
+		}
+		errors += fmt.Sprintf("google_ping: %v", data.GooglePingError)
 	}
-
-	streamError := ""
 	if data.StreamError != nil {
-		streamError = data.StreamError.Error()
+		if errors != "" {
+			errors += "; "
+		}
+		errors += fmt.Sprintf("stream: %v", data.StreamError)
 	}
-
-	obsStatsError := ""
 	if data.ObsStatsError != nil {
-		obsStatsError = data.ObsStatsError.Error()
+		if errors != "" {
+			errors += "; "
+		}
+		errors += fmt.Sprintf("obs_stats: %v", data.ObsStatsError)
 	}
-
-	systemMetricsError := ""
 	if data.SystemMetricsError != nil {
-		systemMetricsError = data.SystemMetricsError.Error()
+		if errors != "" {
+			errors += "; "
+		}
+		errors += fmt.Sprintf("system: %v", data.SystemMetricsError)
 	}
 
 	row := []string{
 		data.Timestamp.Format(time.RFC3339),
 		obsRttMs,
-		obsPingError,
 		googleRttMs,
-		googlePingError,
 		fmt.Sprintf("%t", data.StreamActive),
 		fmt.Sprintf("%.0f", data.OutputBytes),
 		fmt.Sprintf("%.0f", data.OutputSkippedFrames),
 		fmt.Sprintf("%.0f", data.OutputFrames),
-		streamError,
 		fmt.Sprintf("%.2f", data.ObsCpuUsage),
 		fmt.Sprintf("%.2f", data.ObsMemoryUsage),
-		obsStatsError,
 		fmt.Sprintf("%.2f", data.SystemCpuUsage),
 		fmt.Sprintf("%.2f", data.SystemMemoryUsage),
-		systemMetricsError,
+		errors,
 	}
 
 	if err := cw.writer.Write(row); err != nil {
