@@ -69,6 +69,12 @@ func (m *Monitor) Start() error {
 		return fmt.Errorf("failed to connect to OBS: %w", err)
 	}
 
+	// Get OBS version
+	version, err := m.client.General.GetVersion()
+	if err != nil {
+		return fmt.Errorf("failed to get OBS version: %w", err)
+	}
+
 	// Get OBS stream server domain
 	streamSettings, err := m.client.Config.GetStreamServiceSettings()
 	if err != nil {
@@ -80,12 +86,12 @@ func (m *Monitor) Start() error {
 		return fmt.Errorf("stream server URL not found in settings")
 	}
 
-	obsDomain, err := extractDomain(serverURL)
+	streamDomain, err := extractDomain(serverURL)
 	if err != nil {
 		return fmt.Errorf("failed to extract domain from URL: %w", err)
 	}
 
-	if err := m.initializePingers(obsDomain); err != nil {
+	if err := m.initializePingers(streamDomain); err != nil {
 		return err
 	}
 
@@ -109,7 +115,7 @@ func (m *Monitor) Start() error {
 
 	// Initialize CSV writer if filename is provided
 	if m.connectionInfo.CSVFile != "" {
-		m.csvWriter, err = writer.NewCSVWriter(m.connectionInfo.CSVFile)
+		m.csvWriter, err = writer.NewCSVWriter(m.connectionInfo.CSVFile, version.ObsVersion, streamDomain)
 		if err != nil {
 			return fmt.Errorf("failed to initialize CSV writer: %w", err)
 		}

@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"runtime"
 	"time"
 )
 
@@ -14,7 +15,7 @@ type CSVWriter struct {
 }
 
 // NewCSVWriter creates a new CSV writer and writes the header
-func NewCSVWriter(filename string) (*CSVWriter, error) {
+func NewCSVWriter(filename, obsVersion, streamDomain string) (*CSVWriter, error) {
 	file, err := os.Create(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CSV file: %w", err)
@@ -22,7 +23,18 @@ func NewCSVWriter(filename string) (*CSVWriter, error) {
 
 	writer := csv.NewWriter(file)
 
-	// Write header
+	// Write header information
+	headerInfo := []string{
+		fmt.Sprintf("OBS Studio version: %s", obsVersion),
+		fmt.Sprintf("Stream domain: %s", streamDomain),
+		fmt.Sprintf("OS: %s", runtime.GOOS),
+	}
+	if err := writer.Write(headerInfo); err != nil {
+		file.Close()
+		return nil, fmt.Errorf("failed to write CSV header info: %w", err)
+	}
+
+	// Write column header
 	header := []string{
 		"timestamp",
 		"obs_rtt_ms",
