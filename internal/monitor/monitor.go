@@ -248,6 +248,7 @@ func (m *Monitor) writeMetrics(obsRTT time.Duration, obsErr error, googleRTT tim
 		StreamActive:        streamData.Active,
 		OutputBytes:         streamData.OutputBytes,
 		OutputSkippedFrames: streamData.OutputSkippedFrames,
+		OutputFrames:        streamData.OutputFrames,
 		StreamError:         streamData.Error,
 		ObsCpuUsage:         obsStatsData.ObsCpuUsage,
 		ObsMemoryUsage:      obsStatsData.ObsMemoryUsage,

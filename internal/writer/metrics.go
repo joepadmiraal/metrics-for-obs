@@ -12,6 +12,7 @@ type MetricsData struct {
 	StreamActive        bool
 	OutputBytes         float64
 	OutputSkippedFrames float64
+	OutputFrames        float64
 	StreamError         error
 	ObsCpuUsage         float64
 	ObsMemoryUsage      float64

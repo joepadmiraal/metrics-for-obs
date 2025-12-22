@@ -21,8 +21,8 @@ func NewConsoleWriter() *ConsoleWriter {
 func (cw *ConsoleWriter) WriteMetrics(data MetricsData) error {
 	// Print header on first call
 	if !cw.headerPrinted {
-		fmt.Println("timestamp                 | obs_rtt_ms | google_rtt_ms | stream_active | output_bytes | output_skipped_frames | obs_cpu_% | obs_mem_mb | sys_cpu_% | sys_mem_% | errors")
-		fmt.Println("--------------------------|------------|---------------|---------------|--------------|-----------------------|-----------|------------|-----------|-----------|--------")
+		fmt.Println("timestamp                 | obs_rtt_ms | google_rtt_ms | stream_active | output_bytes | output_skipped_frames | output_frames | obs_cpu_% | obs_mem_mb | sys_cpu_% | sys_mem_% | errors")
+		fmt.Println("--------------------------|------------|---------------|---------------|--------------|-----------------------|---------------|-----------|------------|-----------|-----------|--------")
 		cw.headerPrinted = true
 	}
 
@@ -65,16 +65,19 @@ func (cw *ConsoleWriter) WriteMetrics(data MetricsData) error {
 		errors += fmt.Sprintf("system: %v", data.SystemMetricsError)
 	}
 
-	fmt.Printf("%25s | %10s | %13s | %13t | %12.0f | %21.0f | %9.1f | %10.0f | %9.1f | %9.1f | %s\n",
+	fmt.Printf("%25s | %10s | %13s | %13t | %12.0f | %21.0f | %13.0f | %9.1f | %10.0f | %9.1f | %9.1f | %s\n",
 		data.Timestamp.Format(time.RFC3339),
 		obsRttMs,
 		googleRttMs,
 		data.StreamActive,
 		data.OutputBytes,
 		data.OutputSkippedFrames,
+		data.OutputFrames,
 		data.ObsCpuUsage,
-		data.ObsMemoryUsage, data.SystemCpuUsage,
-		data.SystemMemoryUsage, errors,
+		data.ObsMemoryUsage,
+		data.SystemCpuUsage,
+		data.SystemMemoryUsage,
+		errors,
 	)
 
 	return nil

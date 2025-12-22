@@ -49,11 +49,20 @@ The monitor will write one line per second to the CSV file containing:
 
 - `timestamp`: ISO 8601 timestamp
 - `obs_rtt_ms`: Round-trip time to the streaming server in milliseconds
+- `obs_ping_error`: Any error that occurred while pinging the streaming server
 - `google_rtt_ms`: Round-trip time to Google in milliseconds
+- `google_ping_error`: Any error that occurred while pinging Google
 - `stream_active`: Whether the stream is currently active
 - `output_bytes`: Total bytes sent to the streaming server during the writer-interval
-- `output_skipped_frames`: Number of frames skipped during the writer-interval
+- `output_skipped_frames`: Number of frames skipped in the output process during the writer-interval
+- `output_frames`: Total number of frames rendered in the output process during the writer-interval
 - `stream_error`: Any error that occurred while getting stream status
+- `obs_cpu_percent`: CPU usage of the OBS process in percent
+- `obs_memory_mb`: Memory usage of the OBS process in MB
+- `obs_stats_error`: Any error that occurred while getting OBS stats
+- `system_cpu_percent`: Overall system CPU usage in percent
+- `system_memory_percent`: Overall system memory usage in percent
+- `system_metrics_error`: Any error that occurred while getting system metrics
 
 Example:
 ```bash
