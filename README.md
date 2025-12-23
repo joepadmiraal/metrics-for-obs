@@ -6,7 +6,7 @@ It connects to OBS via a WebSocket connection.
 All generic metrics are collected from the machine that runs OBS Monitor so it makes sense to run this on the same machine as OBS itself.
 
 The metric collection interval is configurable.
-This enables very precise metrics which is usefull for troubleshooting low latency video streams.
+This enables very precise metrics which is useful for troubleshooting low latency video streams.
 It's possible that within one write window, multiple measurements are collected.
 In which case it will take the max value of the measurements.
 
