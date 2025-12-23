@@ -26,10 +26,10 @@ func TestStreamMetrics_GetAndResetMaxValues_NoMeasurements(t *testing.T) {
 
 func TestStreamMetrics_GetAndResetMaxValues_OneMeasurement(t *testing.T) {
 	sm := &StreamMetrics{
-		maxOutputBytes:    1000.0,
-		maxSkippedFrames:  10.0,
-		maxTotalFrames:    100.0,
-		measurementCount:  1,
+		maxOutputBytes:   1000.0,
+		maxSkippedFrames: 10.0,
+		maxTotalFrames:   100.0,
+		measurementCount: 1,
 	}
 
 	data := sm.GetAndResetMaxValues()
@@ -90,9 +90,9 @@ func TestStreamMetrics_GetAndResetMaxValues_MultipleMeasurements(t *testing.T) {
 
 func TestStreamMetrics_GetAndResetMaxValues_MaxValueTracking(t *testing.T) {
 	sm := &StreamMetrics{
-		prevOutputBytes:   1000.0,
-		maxOutputBytes:    3000.0,
-		measurementCount:  3,
+		prevOutputBytes:  1000.0,
+		maxOutputBytes:   3000.0,
+		measurementCount: 3,
 	}
 
 	data1 := sm.GetAndResetMaxValues()

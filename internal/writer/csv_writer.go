@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -12,6 +13,7 @@ import (
 type CSVWriter struct {
 	file   *os.File
 	writer *csv.Writer
+	mu     sync.Mutex
 }
 
 // NewCSVWriter creates a new CSV writer and writes the header
@@ -63,6 +65,9 @@ func NewCSVWriter(filename, obsVersion, streamDomain string) (*CSVWriter, error)
 
 // WriteMetrics writes a single metrics data row to the CSV file
 func (cw *CSVWriter) WriteMetrics(data MetricsData) error {
+	cw.mu.Lock()
+	defer cw.mu.Unlock()
+
 	obsRttMs := ""
 	if data.ObsPingError == nil && data.ObsRTT > 0 {
 		obsRttMs = fmt.Sprintf("%.2f", float64(data.ObsRTT.Microseconds())/1000.0)
@@ -127,6 +132,8 @@ func (cw *CSVWriter) WriteMetrics(data MetricsData) error {
 
 // Close closes the CSV file
 func (cw *CSVWriter) Close() error {
+	cw.mu.Lock()
+	defer cw.mu.Unlock()
 	cw.writer.Flush()
 	return cw.file.Close()
 }
