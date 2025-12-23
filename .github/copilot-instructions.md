@@ -10,4 +10,12 @@ It's used for monitoring low latency streams so we use a measurement interval of
 - Use idiomatic Go.
 
 ## Development
-- Always run `go build ./...` after you made changes to the source code.
+- Always run `go test -race ./...` after you made changes to the source code.
+
+## Testing Best Practices
+1. **Isolation**: Mock all external dependencies (OBS WebSocket, network, system calls)
+2. **Determinism**: Use fixed timestamps, controlled randomness
+3. **Concurrency**: Use `-race` flag to detect race conditions
+4. **Clear naming**: `TestComponentName_Method_Scenario` pattern
+5. **Table-driven tests**: For testing multiple scenarios with similar setup
+6. **Cleanup**: Use `t.Cleanup()` for resource cleanup
