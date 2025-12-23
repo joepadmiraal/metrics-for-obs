@@ -5,12 +5,15 @@ A utility that monitors an OBS Studio instance via a WebSocket connection. Measu
 It connects to OBS via a WebSocket connection.
 All generic metrics are collected from the machine that runs OBS Monitor so it makes sense to run this on the same machine as OBS itself.
 
-It's possible that within one write window, multiple measurements are collected. In which case it will take the max value of the measurements.
+The metric collection interval is configurable.
+This enables very precise metrics which is usefull for troubleshooting low latency video streams.
+It's possible that within one write window, multiple measurements are collected.
+In which case it will take the max value of the measurements.
 
 ## Usage
 
 ```bash
-obs-monitor -password <password>
+obs-monitor -password <websocket password>
 ```
 
 Example output
@@ -24,14 +27,17 @@ Server protocol version: 5.6.3
 Client protocol version: 5.5.6
 Client library version: 1.5.6
 
-timestamp                 | obs_rtt_ms | google_rtt_ms | stream_active | output_bytes | output_skipped_frames | errors
---------------------------|------------|---------------|---------------|--------------|-----------------------|--------
-2025-12-16T15:07:37+01:00 |       5.80 |          4.59 |          true |       915861 |                     0 | 
-2025-12-16T15:07:38+01:00 |       9.29 |          5.72 |          true |      1009403 |                     0 | 
-2025-12-16T15:07:39+01:00 |       6.43 |          7.03 |          true |      1053680 |                     0 | 
-2025-12-16T15:07:40+01:00 |       9.25 |          6.65 |          true |      1071794 |                     0 | 
-2025-12-16T15:07:41+01:00 |       8.78 |          3.80 |          true |       980014 |                     0 | 
-2025-12-16T15:07:42+01:00 |       7.17 |          3.86 |          true |       823529 |                     0 | 
+timestamp                 | obs_rtt_ms | google_rtt_ms | stream_active | output_bytes | output_skipped_frames | output_frames | obs_cpu_% | obs_mem_mb | sys_cpu_% | sys_mem_% | errors
+--------------------------|------------|---------------|---------------|--------------|-----------------------|---------------|-----------|------------|-----------|-----------|--------
+2025-12-23T15:01:21+01:00 |       4.74 |         12.38 |         false |            0 |                     0 |             0 |       2.8 |        400 |      18.1 |      71.6 | 
+2025-12-23T15:01:22+01:00 |       4.31 |          4.98 |         false |            0 |                     0 |             0 |       3.1 |        397 |      15.8 |      74.6 | 
+2025-12-23T15:01:23+01:00 |       3.91 |          5.13 |         false |            0 |                     0 |             0 |       3.3 |        398 |      11.7 |      74.7 | 
+2025-12-23T15:01:24+01:00 |       3.88 |          4.45 |          true |            0 |                     0 |             0 |       3.8 |        418 |      12.4 |      73.4 | 
+2025-12-23T15:01:25+01:00 |       4.31 |          6.08 |          true |       327347 |                     0 |            28 |       3.9 |        419 |      13.6 |      71.5 | 
+2025-12-23T15:01:26+01:00 |       4.89 |          9.36 |          true |       330688 |                     0 |            30 |       3.6 |        419 |      13.2 |      71.6 | 
+2025-12-23T15:01:27+01:00 |       4.89 |          4.19 |          true |       792085 |                     0 |            30 |       3.4 |        420 |      12.3 |      72.9 | 
+2025-12-23T15:01:28+01:00 |       4.13 |          5.09 |          true |       694144 |                     0 |            30 |       3.4 |        420 |      13.6 |      71.4 | 
+2025-12-23T15:01:29+01:00 |       4.33 |          4.30 |          true |       549395 |                     0 |            30 |       3.4 |        420 |      12.7 |      72.8 | 
 ```
 
 ### Flags
