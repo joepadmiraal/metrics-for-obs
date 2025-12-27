@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/joepadmiraal/obs-monitor/internal/monitor"
 	"golang.org/x/term"
@@ -22,7 +23,8 @@ func main() {
 	password := flag.String("password", "", "OBS WebSocket password")
 	host := flag.String("host", "localhost", "OBS WebSocket host")
 	port := flag.String("port", "4455", "OBS WebSocket port")
-	csvFile := flag.String("csv", "obs-monitor.csv", "Optional CSV file to write metrics to")
+	defaultCSVFile := fmt.Sprintf("obs-monitor-%s.csv", time.Now().Format("2006-01-02-15-04-05"))
+	csvFile := flag.String("csv", defaultCSVFile, "Optional CSV file to write metrics to")
 	metricIntervalMs := flag.Int("metric-interval", 1000, "Metric collection interval in milliseconds (default 1000ms)")
 	writerIntervalMs := flag.Int("writer-interval", 1000, "Writer interval in milliseconds (default 1000ms)")
 	flag.Parse()
