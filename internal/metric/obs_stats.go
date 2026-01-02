@@ -1,6 +1,7 @@
 package metric
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -8,13 +9,14 @@ import (
 )
 
 type ObsStats struct {
-	client            *goobs.Client
-	maxObsCpuUsage    float64
-	maxObsMemoryUsage float64
-	lastError         error
-	measurementCount  int
-	mu                sync.Mutex
-	interval          time.Duration
+	client               *goobs.Client
+	maxObsCpuUsage       float64
+	maxObsMemoryUsage    float64
+	lastError            error
+	measurementCount     int
+	measurementsSinceGet int
+	mu                   sync.Mutex
+	interval             time.Duration
 }
 
 type ObsStatsData struct {
@@ -39,9 +41,19 @@ func (s *ObsStats) GetAndResetMaxValues() ObsStatsData {
 	maxMemory := s.maxObsMemoryUsage
 	err := s.lastError
 
+	if s.measurementsSinceGet == 0 && s.measurementCount > 0 {
+		return ObsStatsData{
+			Timestamp:      time.Now(),
+			ObsCpuUsage:    0,
+			ObsMemoryUsage: 0,
+			Error:          fmt.Errorf("no new measurements collected since last read"),
+		}
+	}
+
 	s.maxObsCpuUsage = 0
 	s.maxObsMemoryUsage = 0
 	s.lastError = nil
+	s.measurementsSinceGet = 0
 
 	return ObsStatsData{
 		Timestamp:      time.Now(),
@@ -62,6 +74,7 @@ func (s *ObsStats) updateStats(cpuUsage, memoryUsage float64) {
 		s.maxObsMemoryUsage = memoryUsage
 	}
 	s.measurementCount++
+	s.measurementsSinceGet++
 }
 
 func (s *ObsStats) recordError(err error) {

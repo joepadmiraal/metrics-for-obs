@@ -52,13 +52,14 @@ func TestStreamMetrics_GetAndResetMaxValues_OneMeasurement(t *testing.T) {
 
 func TestStreamMetrics_GetAndResetMaxValues_MultipleMeasurements(t *testing.T) {
 	sm := &StreamMetrics{
-		prevOutputBytes:   1000.0,
-		prevSkippedFrames: 10.0,
-		prevTotalFrames:   100.0,
-		maxOutputBytes:    2500.0,
-		maxSkippedFrames:  25.0,
-		maxTotalFrames:    250.0,
-		measurementCount:  5,
+		prevOutputBytes:      1000.0,
+		prevSkippedFrames:    10.0,
+		prevTotalFrames:      100.0,
+		maxOutputBytes:       2500.0,
+		maxSkippedFrames:     25.0,
+		maxTotalFrames:       250.0,
+		measurementCount:     5,
+		measurementsSinceGet: 3,
 	}
 
 	data := sm.GetAndResetMaxValues()
@@ -91,9 +92,10 @@ func TestStreamMetrics_GetAndResetMaxValues_MultipleMeasurements(t *testing.T) {
 
 func TestStreamMetrics_GetAndResetMaxValues_MaxValueTracking(t *testing.T) {
 	sm := &StreamMetrics{
-		prevOutputBytes:  1000.0,
-		maxOutputBytes:   3000.0,
-		measurementCount: 3,
+		prevOutputBytes:      1000.0,
+		maxOutputBytes:       3000.0,
+		measurementCount:     3,
+		measurementsSinceGet: 2,
 	}
 
 	data1 := sm.GetAndResetMaxValues()
@@ -104,6 +106,7 @@ func TestStreamMetrics_GetAndResetMaxValues_MaxValueTracking(t *testing.T) {
 
 	sm.maxOutputBytes = 3500.0
 	sm.measurementCount = 3
+	sm.measurementsSinceGet = 1
 
 	data2 := sm.GetAndResetMaxValues()
 	expectedDelta2 := 3500.0 - 3000.0
@@ -114,9 +117,10 @@ func TestStreamMetrics_GetAndResetMaxValues_MaxValueTracking(t *testing.T) {
 
 func TestStreamMetrics_GetAndResetMaxValues_ConcurrentAccess(t *testing.T) {
 	sm := &StreamMetrics{
-		prevOutputBytes:  1000.0,
-		maxOutputBytes:   2000.0,
-		measurementCount: 2,
+		prevOutputBytes:      1000.0,
+		maxOutputBytes:       2000.0,
+		measurementCount:     2,
+		measurementsSinceGet: 1,
 	}
 
 	var wg sync.WaitGroup
@@ -151,8 +155,9 @@ func TestStreamMetrics_NewStreamMetrics(t *testing.T) {
 
 func TestStreamMetrics_ErrorHandlingDuringCollection(t *testing.T) {
 	sm := &StreamMetrics{
-		maxOutputBytes:   1000.0,
-		measurementCount: 5,
+		maxOutputBytes:       1000.0,
+		measurementCount:     5,
+		measurementsSinceGet: 3,
 	}
 
 	testError := fmt.Errorf("stream status error")
@@ -170,6 +175,37 @@ func TestStreamMetrics_ErrorHandlingDuringCollection(t *testing.T) {
 	data := sm.GetAndResetMaxValues()
 	if data.Error != testError {
 		t.Error("Expected error to be returned in data")
+	}
+}
+
+func TestStreamMetrics_GetAndResetMaxValues_NoNewMeasurements(t *testing.T) {
+	sm := &StreamMetrics{
+		prevOutputBytes:      1000.0,
+		prevSkippedFrames:    10.0,
+		prevTotalFrames:      100.0,
+		maxOutputBytes:       1000.0,
+		maxSkippedFrames:     10.0,
+		maxTotalFrames:       100.0,
+		measurementCount:     5,
+		measurementsSinceGet: 0,
+	}
+
+	data := sm.GetAndResetMaxValues()
+
+	if data.Error == nil {
+		t.Error("Expected error when no new measurements collected")
+	}
+	if data.Error.Error() != "no new measurements collected since last read" {
+		t.Errorf("Expected specific error message, got: %v", data.Error)
+	}
+	if data.OutputBytes != 0 {
+		t.Errorf("Expected OutputBytes to be 0, got %f", data.OutputBytes)
+	}
+	if data.OutputSkippedFrames != 0 {
+		t.Errorf("Expected OutputSkippedFrames to be 0, got %f", data.OutputSkippedFrames)
+	}
+	if data.OutputFrames != 0 {
+		t.Errorf("Expected OutputFrames to be 0, got %f", data.OutputFrames)
 	}
 }
 

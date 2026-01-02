@@ -9,8 +9,10 @@ import (
 
 func TestSystemMetrics_GetAndResetMaxValues_ReturnsCorrectMaxValues(t *testing.T) {
 	sm := &SystemMetrics{
-		maxCpuUsage:    75.5,
-		maxMemoryUsage: 85.2,
+		maxCpuUsage:          75.5,
+		maxMemoryUsage:       85.2,
+		measurementCount:     3,
+		measurementsSinceGet: 2,
 	}
 
 	data := sm.GetAndResetMaxValues()
@@ -25,8 +27,10 @@ func TestSystemMetrics_GetAndResetMaxValues_ReturnsCorrectMaxValues(t *testing.T
 
 func TestSystemMetrics_GetAndResetMaxValues_ResetsValues(t *testing.T) {
 	sm := &SystemMetrics{
-		maxCpuUsage:    75.5,
-		maxMemoryUsage: 85.2,
+		maxCpuUsage:          75.5,
+		maxMemoryUsage:       85.2,
+		measurementCount:     4,
+		measurementsSinceGet: 2,
 	}
 
 	_ = sm.GetAndResetMaxValues()
@@ -45,8 +49,10 @@ func TestSystemMetrics_GetAndResetMaxValues_ResetsValues(t *testing.T) {
 func TestSystemMetrics_GetAndResetMaxValues_ErrorHandling(t *testing.T) {
 	testError := fmt.Errorf("system error")
 	sm := &SystemMetrics{
-		maxCpuUsage: 50.0,
-		lastError:   testError,
+		maxCpuUsage:          50.0,
+		lastError:            testError,
+		measurementCount:     2,
+		measurementsSinceGet: 1,
 	}
 
 	data := sm.GetAndResetMaxValues()
@@ -65,8 +71,10 @@ func TestSystemMetrics_GetAndResetMaxValues_ErrorHandling(t *testing.T) {
 
 func TestSystemMetrics_GetAndResetMaxValues_ConcurrentAccess(t *testing.T) {
 	sm := &SystemMetrics{
-		maxCpuUsage:    60.0,
-		maxMemoryUsage: 70.0,
+		maxCpuUsage:          60.0,
+		maxMemoryUsage:       70.0,
+		measurementCount:     3,
+		measurementsSinceGet: 1,
 	}
 
 	var wg sync.WaitGroup
@@ -104,7 +112,9 @@ func TestSystemMetrics_GetAndResetMaxValues_ZeroValues(t *testing.T) {
 
 func TestSystemMetrics_GetAndResetMaxValues_TracksMaximum(t *testing.T) {
 	sm := &SystemMetrics{
-		maxCpuUsage: 40.0,
+		maxCpuUsage:          40.0,
+		measurementCount:     2,
+		measurementsSinceGet: 1,
 	}
 
 	data1 := sm.GetAndResetMaxValues()
@@ -113,10 +123,35 @@ func TestSystemMetrics_GetAndResetMaxValues_TracksMaximum(t *testing.T) {
 	}
 
 	sm.maxCpuUsage = 80.0
+	sm.measurementsSinceGet = 1
 
 	data2 := sm.GetAndResetMaxValues()
 	if data2.CpuUsage != 80.0 {
 		t.Errorf("Expected second call to return 80.0 (new max), got %f", data2.CpuUsage)
+	}
+}
+
+func TestSystemMetrics_GetAndResetMaxValues_NoNewMeasurements(t *testing.T) {
+	sm := &SystemMetrics{
+		maxCpuUsage:          50.0,
+		maxMemoryUsage:       60.0,
+		measurementCount:     5,
+		measurementsSinceGet: 0,
+	}
+
+	data := sm.GetAndResetMaxValues()
+
+	if data.Error == nil {
+		t.Error("Expected error when no new measurements collected")
+	}
+	if data.Error != nil && data.Error.Error() != "no new measurements collected since last read" {
+		t.Errorf("Expected specific error message, got: %v", data.Error)
+	}
+	if data.CpuUsage != 0 {
+		t.Errorf("Expected CpuUsage to be 0, got %f", data.CpuUsage)
+	}
+	if data.MemoryUsage != 0 {
+		t.Errorf("Expected MemoryUsage to be 0, got %f", data.MemoryUsage)
 	}
 }
 

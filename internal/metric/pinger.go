@@ -10,11 +10,13 @@ import (
 )
 
 type Pinger struct {
-	domain    string
-	maxRTT    time.Duration
-	lastError error
-	mu        sync.Mutex
-	interval  time.Duration
+	domain               string
+	maxRTT               time.Duration
+	lastError            error
+	measurementCount     int
+	measurementsSinceGet int
+	mu                   sync.Mutex
+	interval             time.Duration
 }
 
 type PingMetrics struct {
@@ -34,11 +36,16 @@ func (p *Pinger) GetAndResetMaxRTT() (time.Duration, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
+	if p.measurementsSinceGet == 0 && p.measurementCount > 0 {
+		return 0, fmt.Errorf("no new measurements collected since last read")
+	}
+
 	maxRTT := p.maxRTT
 	err := p.lastError
 
 	p.maxRTT = 0
 	p.lastError = nil
+	p.measurementsSinceGet = 0
 
 	return maxRTT, err
 }
@@ -58,6 +65,8 @@ func (p *Pinger) Start() error {
 		} else if rtt > p.maxRTT {
 			p.maxRTT = rtt
 		}
+		p.measurementCount++
+		p.measurementsSinceGet++
 		p.mu.Unlock()
 	}
 

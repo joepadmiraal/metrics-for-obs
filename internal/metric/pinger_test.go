@@ -9,7 +9,9 @@ import (
 
 func TestPinger_GetAndResetMaxRTT_ReturnsCorrectMaxValue(t *testing.T) {
 	p := &Pinger{
-		maxRTT: 150 * time.Millisecond,
+		maxRTT:               150 * time.Millisecond,
+		measurementCount:     3,
+		measurementsSinceGet: 1,
 	}
 
 	rtt, err := p.GetAndResetMaxRTT()
@@ -24,7 +26,9 @@ func TestPinger_GetAndResetMaxRTT_ReturnsCorrectMaxValue(t *testing.T) {
 
 func TestPinger_GetAndResetMaxRTT_ResetsValue(t *testing.T) {
 	p := &Pinger{
-		maxRTT: 150 * time.Millisecond,
+		maxRTT:               150 * time.Millisecond,
+		measurementCount:     2,
+		measurementsSinceGet: 1,
 	}
 
 	_, _ = p.GetAndResetMaxRTT()
@@ -40,8 +44,10 @@ func TestPinger_GetAndResetMaxRTT_ResetsValue(t *testing.T) {
 func TestPinger_GetAndResetMaxRTT_ErrorHandling(t *testing.T) {
 	testError := fmt.Errorf("ping error")
 	p := &Pinger{
-		maxRTT:    100 * time.Millisecond,
-		lastError: testError,
+		maxRTT:               100 * time.Millisecond,
+		lastError:            testError,
+		measurementCount:     4,
+		measurementsSinceGet: 2,
 	}
 
 	rtt, err := p.GetAndResetMaxRTT()
@@ -63,7 +69,9 @@ func TestPinger_GetAndResetMaxRTT_ErrorHandling(t *testing.T) {
 
 func TestPinger_GetAndResetMaxRTT_ConcurrentAccess(t *testing.T) {
 	p := &Pinger{
-		maxRTT: 200 * time.Millisecond,
+		maxRTT:               200 * time.Millisecond,
+		measurementCount:     1,
+		measurementsSinceGet: 1,
 	}
 
 	var wg sync.WaitGroup
@@ -97,7 +105,9 @@ func TestPinger_GetAndResetMaxRTT_ZeroValue(t *testing.T) {
 
 func TestPinger_GetAndResetMaxRTT_TracksMaximum(t *testing.T) {
 	p := &Pinger{
-		maxRTT: 50 * time.Millisecond,
+		maxRTT:               50 * time.Millisecond,
+		measurementCount:     1,
+		measurementsSinceGet: 1,
 	}
 
 	rtt1, _ := p.GetAndResetMaxRTT()
@@ -106,10 +116,31 @@ func TestPinger_GetAndResetMaxRTT_TracksMaximum(t *testing.T) {
 	}
 
 	p.maxRTT = 200 * time.Millisecond
+	p.measurementsSinceGet = 1
 
 	rtt2, _ := p.GetAndResetMaxRTT()
 	if rtt2 != 200*time.Millisecond {
 		t.Errorf("Expected second call to return 200ms (new max), got %v", rtt2)
+	}
+}
+
+func TestPinger_GetAndResetMaxRTT_NoNewMeasurements(t *testing.T) {
+	p := &Pinger{
+		maxRTT:               100 * time.Millisecond,
+		measurementCount:     5,
+		measurementsSinceGet: 0,
+	}
+
+	rtt, err := p.GetAndResetMaxRTT()
+
+	if err == nil {
+		t.Error("Expected error when no new measurements collected")
+	}
+	if err != nil && err.Error() != "no new measurements collected since last read" {
+		t.Errorf("Expected specific error message, got: %v", err)
+	}
+	if rtt != 0 {
+		t.Errorf("Expected RTT to be 0, got %v", rtt)
 	}
 }
 
@@ -135,7 +166,9 @@ func TestPinger_NewPinger(t *testing.T) {
 
 func TestPinger_GetAndResetMaxRTT_HighRTT(t *testing.T) {
 	p := &Pinger{
-		maxRTT: 1500 * time.Millisecond,
+		maxRTT:               1500 * time.Millisecond,
+		measurementCount:     1,
+		measurementsSinceGet: 1,
 	}
 
 	rtt, err := p.GetAndResetMaxRTT()
@@ -150,7 +183,9 @@ func TestPinger_GetAndResetMaxRTT_HighRTT(t *testing.T) {
 
 func TestPinger_GetAndResetMaxRTT_MultipleResets(t *testing.T) {
 	p := &Pinger{
-		maxRTT: 100 * time.Millisecond,
+		maxRTT:               100 * time.Millisecond,
+		measurementCount:     1,
+		measurementsSinceGet: 1,
 	}
 
 	rtt1, _ := p.GetAndResetMaxRTT()

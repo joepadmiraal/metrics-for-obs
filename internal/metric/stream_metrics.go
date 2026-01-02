@@ -9,18 +9,19 @@ import (
 )
 
 type StreamMetrics struct {
-	client            *goobs.Client
-	maxOutputBytes    float64
-	prevOutputBytes   float64
-	maxSkippedFrames  float64
-	prevSkippedFrames float64
-	maxTotalFrames    float64
-	prevTotalFrames   float64
-	lastActive        bool
-	lastError         error
-	measurementCount  int
-	mu                sync.Mutex
-	interval          time.Duration
+	client               *goobs.Client
+	maxOutputBytes       float64
+	prevOutputBytes      float64
+	maxSkippedFrames     float64
+	prevSkippedFrames    float64
+	maxTotalFrames       float64
+	prevTotalFrames      float64
+	lastActive           bool
+	lastError            error
+	measurementCount     int
+	measurementsSinceGet int
+	mu                   sync.Mutex
+	interval             time.Duration
 }
 
 type StreamMetricsData struct {
@@ -57,6 +58,7 @@ func (s *StreamMetrics) GetAndResetMaxValues() StreamMetricsData {
 		s.maxSkippedFrames = 0
 		s.maxTotalFrames = 0
 		s.lastError = nil
+		s.measurementsSinceGet = 0
 		return StreamMetricsData{
 			Timestamp:           time.Now(),
 			Active:              active,
@@ -64,6 +66,17 @@ func (s *StreamMetrics) GetAndResetMaxValues() StreamMetricsData {
 			OutputSkippedFrames: 0,
 			OutputFrames:        0,
 			Error:               err,
+		}
+	}
+
+	if s.measurementsSinceGet == 0 {
+		return StreamMetricsData{
+			Timestamp:           time.Now(),
+			Active:              active,
+			OutputBytes:         0,
+			OutputSkippedFrames: 0,
+			OutputFrames:        0,
+			Error:               fmt.Errorf("no new measurements collected since last read"),
 		}
 	}
 
@@ -75,6 +88,7 @@ func (s *StreamMetrics) GetAndResetMaxValues() StreamMetricsData {
 	s.prevSkippedFrames = maxSkipped
 	s.prevTotalFrames = maxTotalFrames
 	s.lastError = nil
+	s.measurementsSinceGet = 0
 
 	return StreamMetricsData{
 		Timestamp:           time.Now(),
@@ -101,6 +115,7 @@ func (s *StreamMetrics) updateMetrics(outputActive bool, outputBytes, skippedFra
 		s.maxTotalFrames = totalFrames
 	}
 	s.measurementCount++
+	s.measurementsSinceGet++
 }
 
 func (s *StreamMetrics) recordError(err error) {

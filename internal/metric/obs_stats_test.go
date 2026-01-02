@@ -9,9 +9,10 @@ import (
 
 func TestObsStats_GetAndResetMaxValues_ReturnsCorrectMaxValues(t *testing.T) {
 	obs := &ObsStats{
-		maxObsCpuUsage:    25.5,
-		maxObsMemoryUsage: 1024.0,
-		measurementCount:  5,
+		maxObsCpuUsage:       25.5,
+		maxObsMemoryUsage:    1024.0,
+		measurementCount:     5,
+		measurementsSinceGet: 3,
 	}
 
 	data := obs.GetAndResetMaxValues()
@@ -26,9 +27,10 @@ func TestObsStats_GetAndResetMaxValues_ReturnsCorrectMaxValues(t *testing.T) {
 
 func TestObsStats_GetAndResetMaxValues_ResetsValues(t *testing.T) {
 	obs := &ObsStats{
-		maxObsCpuUsage:    25.5,
-		maxObsMemoryUsage: 1024.0,
-		measurementCount:  5,
+		maxObsCpuUsage:       25.5,
+		maxObsMemoryUsage:    1024.0,
+		measurementCount:     5,
+		measurementsSinceGet: 2,
 	}
 
 	_ = obs.GetAndResetMaxValues()
@@ -47,9 +49,10 @@ func TestObsStats_GetAndResetMaxValues_ResetsValues(t *testing.T) {
 func TestObsStats_GetAndResetMaxValues_ErrorHandling(t *testing.T) {
 	testError := fmt.Errorf("test error")
 	obs := &ObsStats{
-		maxObsCpuUsage:   10.0,
-		lastError:        testError,
-		measurementCount: 3,
+		maxObsCpuUsage:       10.0,
+		lastError:            testError,
+		measurementCount:     3,
+		measurementsSinceGet: 1,
 	}
 
 	data := obs.GetAndResetMaxValues()
@@ -109,8 +112,9 @@ func TestObsStats_GetAndResetMaxValues_ZeroValues(t *testing.T) {
 
 func TestObsStats_GetAndResetMaxValues_TracksMaximum(t *testing.T) {
 	obs := &ObsStats{
-		maxObsCpuUsage:   10.0,
-		measurementCount: 2,
+		maxObsCpuUsage:       10.0,
+		measurementCount:     2,
+		measurementsSinceGet: 1,
 	}
 
 	data1 := obs.GetAndResetMaxValues()
@@ -120,6 +124,7 @@ func TestObsStats_GetAndResetMaxValues_TracksMaximum(t *testing.T) {
 
 	obs.maxObsCpuUsage = 20.0
 	obs.measurementCount = 3
+	obs.measurementsSinceGet = 1
 
 	data2 := obs.GetAndResetMaxValues()
 	if data2.ObsCpuUsage != 20.0 {
@@ -159,8 +164,9 @@ func TestObsStats_GetAndResetMaxValues_SetsTimestamp(t *testing.T) {
 
 func TestObsStats_ErrorHandlingDuringCollection(t *testing.T) {
 	obs := &ObsStats{
-		maxObsCpuUsage:   20.0,
-		measurementCount: 5,
+		maxObsCpuUsage:       20.0,
+		measurementCount:     5,
+		measurementsSinceGet: 3,
 	}
 
 	testError := fmt.Errorf("stats collection error")
@@ -196,6 +202,30 @@ func TestObsStats_MeasurementCountIncrement(t *testing.T) {
 
 	if obs.measurementCount != 6 {
 		t.Errorf("Expected measurementCount to be 6, got %d", obs.measurementCount)
+	}
+}
+
+func TestObsStats_GetAndResetMaxValues_NoNewMeasurements(t *testing.T) {
+	obs := &ObsStats{
+		maxObsCpuUsage:       20.0,
+		maxObsMemoryUsage:    500.0,
+		measurementCount:     5,
+		measurementsSinceGet: 0,
+	}
+
+	data := obs.GetAndResetMaxValues()
+
+	if data.Error == nil {
+		t.Error("Expected error when no new measurements collected")
+	}
+	if data.Error.Error() != "no new measurements collected since last read" {
+		t.Errorf("Expected specific error message, got: %v", data.Error)
+	}
+	if data.ObsCpuUsage != 0 {
+		t.Errorf("Expected ObsCpuUsage to be 0, got %f", data.ObsCpuUsage)
+	}
+	if data.ObsMemoryUsage != 0 {
+		t.Errorf("Expected ObsMemoryUsage to be 0, got %f", data.ObsMemoryUsage)
 	}
 }
 

@@ -1,6 +1,7 @@
 package metric
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -9,11 +10,13 @@ import (
 )
 
 type SystemMetrics struct {
-	maxCpuUsage    float64
-	maxMemoryUsage float64
-	lastError      error
-	mu             sync.Mutex
-	interval       time.Duration
+	maxCpuUsage          float64
+	maxMemoryUsage       float64
+	lastError            error
+	measurementCount     int
+	measurementsSinceGet int
+	mu                   sync.Mutex
+	interval             time.Duration
 }
 
 type SystemMetricsData struct {
@@ -33,6 +36,15 @@ func (s *SystemMetrics) GetAndResetMaxValues() SystemMetricsData {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if s.measurementsSinceGet == 0 && s.measurementCount > 0 {
+		return SystemMetricsData{
+			Timestamp:   time.Now(),
+			CpuUsage:    0,
+			MemoryUsage: 0,
+			Error:       fmt.Errorf("no new measurements collected since last read"),
+		}
+	}
+
 	maxCpu := s.maxCpuUsage
 	maxMemory := s.maxMemoryUsage
 	err := s.lastError
@@ -40,6 +52,7 @@ func (s *SystemMetrics) GetAndResetMaxValues() SystemMetricsData {
 	s.maxCpuUsage = 0
 	s.maxMemoryUsage = 0
 	s.lastError = nil
+	s.measurementsSinceGet = 0
 
 	return SystemMetricsData{
 		Timestamp:   time.Now(),
@@ -59,6 +72,8 @@ func (s *SystemMetrics) updateMetrics(cpuUsage, memUsage float64) {
 	if memUsage > s.maxMemoryUsage {
 		s.maxMemoryUsage = memUsage
 	}
+	s.measurementCount++
+	s.measurementsSinceGet++
 }
 
 func (s *SystemMetrics) recordError(err error) {
