@@ -1,4 +1,4 @@
-module github.com/joepadmiraal/obs-monitor
+module github.com/joepadmiraal/metrics-for-obs
 
 go 1.24.2
 

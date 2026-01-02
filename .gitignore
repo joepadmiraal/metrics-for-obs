@@ -32,5 +32,5 @@ go.work.sum
 .vscode/
 
 # Project specific
-cmd/obs-monitor/obs-monitor
-cmd/obs-monitor/*.csv
+cmd/metrics-for-obs/metrics-for-obs
+cmd/metrics-for-obs/*.csv

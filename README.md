@@ -1,9 +1,9 @@
-# OBS Monitor
+# Metrics for OBS
 
 A utility that monitors an OBS Studio instance via a WebSocket connection. Measures stream metrics, network latency and generic performance metrics.
 
 It connects to OBS via a WebSocket connection.
-All generic metrics are collected from the machine that runs OBS Monitor so it makes sense to run this on the same machine as OBS itself.
+All generic metrics are collected from the machine that runs Metrics for OBS so it makes sense to run this on the same machine as OBS itself.
 
 The metric collection interval is configurable.
 This enables very precise metrics which is useful for troubleshooting low latency video streams.
@@ -13,7 +13,7 @@ In which case it will take the max value of the measurements.
 ## Usage
 
 ```bash
-obs-monitor -password <websocket password>
+metrics-for-obs -password <websocket password>
 ```
 
 Example output
@@ -45,7 +45,7 @@ timestamp                 | obs_rtt_ms | google_rtt_ms | stream_active | output_
 - `-password` (optional): OBS WebSocket password, the program will ask for it if it's not provided
 - `-host` (optional): OBS WebSocket host (default: localhost)
 - `-port` (optional): OBS WebSocket port (default: 4455)
-- `-csv` (optional): CSV file to write metrics to, set to empty to prevent csv file generation (default: obs-monitor.csv)
+- `-csv` (optional): CSV file to write metrics to, set to empty to prevent csv file generation (default: metrics-for-obs.csv)
 - `-metric-interval` (optional): Metric collection interval in milliseconds (default: 1000ms)
 - `-writer-interval` (optional): Writer interval in milliseconds (default: 1000ms)
 
@@ -68,7 +68,7 @@ The monitor will write one line per second to the CSV file containing:
 
 Example:
 ```bash
-obs-monitor -password mypassword -csv metrics.csv
+metrics-for-obs -password mypassword -csv metrics.csv
 ```
 
 ## OBS

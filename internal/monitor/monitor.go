@@ -9,8 +9,8 @@ import (
 
 	"github.com/andreykaipov/goobs"
 	"github.com/andreykaipov/goobs/api/events"
-	"github.com/joepadmiraal/obs-monitor/internal/metric"
-	"github.com/joepadmiraal/obs-monitor/internal/writer"
+	"github.com/joepadmiraal/metrics-for-obs/internal/metric"
+	"github.com/joepadmiraal/metrics-for-obs/internal/writer"
 )
 
 type ObsConnectionInfo struct {
@@ -280,7 +280,7 @@ func (m *Monitor) monitorConnection() {
 		m.client.Listen(func(event any) {
 			switch event.(type) {
 			case *events.ExitStarted:
-				fmt.Println("\nOBS connection lost, closing obs-monitor...")
+				fmt.Println("\nOBS connection lost, closing metrics-for-obs...")
 				m.cancel()
 			}
 		})

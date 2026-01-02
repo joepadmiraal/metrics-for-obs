@@ -14,8 +14,8 @@ builds:
     goarch:
       - amd64
       - arm64
-    main: ./cmd/obs-monitor
-    binary: obs-monitor
+    main: ./cmd/metrics-for-obs
+    binary: metrics-for-obs
     ldflags:
       - -s -w
       - -X main.version={{.Version}}
@@ -47,5 +47,5 @@ changelog:
 release:
   github:
     owner: joepadmiraal
-    name: obs-monitor
+    name: metrics-for-obs
   prerelease: auto

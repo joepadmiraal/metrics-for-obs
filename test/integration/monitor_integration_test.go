@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/joepadmiraal/obs-monitor/internal/monitor"
+	"github.com/joepadmiraal/metrics-for-obs/internal/monitor"
 )
 
 func TestMonitor_Integration_BasicFlow(t *testing.T) {
