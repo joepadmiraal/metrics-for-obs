@@ -1,4 +1,4 @@
 #! /bin/bash
 
 go build
-./metrics-for-obs -password CbDLW1NPS2O72GLz -csv test.csv
+./metrics-for-obs -password CbDLW1NPS2O72GLz

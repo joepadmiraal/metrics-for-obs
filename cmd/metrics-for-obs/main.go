@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -36,6 +37,8 @@ func main() {
 		os.Exit(0)
 	}
 
+	csvFilePath := resolveCsvPath(*csvFile)
+
 	if *password == "" {
 		fmt.Print("Enter OBS WebSocket password: ")
 		passwordBytes, err := term.ReadPassword(int(syscall.Stdin))
@@ -55,7 +58,7 @@ func main() {
 	monitor, err := monitor.NewMonitor(monitor.ObsConnectionInfo{
 		Host:           fmt.Sprintf("%s:%s", *host, *port),
 		Password:       *password,
-		CSVFile:        *csvFile,
+		CSVFile:        csvFilePath,
 		MetricInterval: *metricIntervalMs,
 		WriterInterval: *writerIntervalMs,
 	})
@@ -86,4 +89,19 @@ func waitForExit(mon *monitor.Monitor) {
 		<-mon.Done()
 	case <-mon.Done():
 	}
+}
+
+func resolveCsvPath(csvFile string) string {
+	if filepath.IsAbs(csvFile) {
+		return csvFile
+	}
+
+	exePath, err := os.Executable()
+	if err != nil {
+		fmt.Printf("Warning: could not determine executable path: %v\n", err)
+		return csvFile
+	}
+
+	exeDir := filepath.Dir(exePath)
+	return filepath.Join(exeDir, csvFile)
 }
